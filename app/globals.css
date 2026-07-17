@@ -35,6 +35,8 @@ a {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
   margin-bottom: 28px;
 }
 
@@ -49,6 +51,49 @@ a {
   display: flex;
   align-items: center;
   gap: 4px;
+}
+
+.brand-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.nav-links {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.nav-links a {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  text-decoration: none;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease, transform 0.1s ease;
+}
+
+.nav-links a:hover {
+  color: var(--text);
+  border-color: var(--accent-dim);
+  transform: translateY(-1px);
+}
+
+.nav-links a.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #17170f;
+}
+
+.sub-note {
+  color: var(--muted);
+  font-size: 13px;
+  margin: -10px 0 24px;
 }
 
 .auth-card {
