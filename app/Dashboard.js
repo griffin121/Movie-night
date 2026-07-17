@@ -7,12 +7,14 @@ const { searchMovies } = require("../lib/tmdb");
 const { clearCurrentUser } = require("../lib/currentUser");
 
 const RATING_LABELS = {
-  1: "ass",
-  2: "ass movie",
-  3: "movie",
-  4: "good movie",
-  5: "good ass movie",
+  1: "💩 Ass",
+  2: "😒 Ass Movie",
+  3: "🎬 Movie",
+  4: "👍 Good Movie",
+  5: "🔥 Good Ass Movie",
 };
+
+const RANK_MEDALS = ["🥇", "🥈", "🥉"];
 
 export default function Dashboard({ user }) {
   const router = useRouter();
@@ -62,6 +64,14 @@ export default function Dashboard({ user }) {
           myRating: mine ? mine.rating : null,
         };
       });
+
+      result.sort((a, b) => {
+        if (a.avg == null && b.avg == null) return 0;
+        if (a.avg == null) return 1;
+        if (b.avg == null) return -1;
+        return b.avg - a.avg;
+      });
+
       setMovies(result);
     }
     setLoadingMovies(false);
@@ -147,7 +157,7 @@ export default function Dashboard({ user }) {
           onChange={(e) => setQuery(e.target.value)}
         />
         <button className="btn" disabled={searching}>
-          {searching ? "Searching..." : "Search"}
+          {searching ? "Searching..." : "🔍 Search"}
         </button>
       </form>
 
@@ -185,48 +195,56 @@ export default function Dashboard({ user }) {
       ) : movies.length === 0 ? (
         <p className="empty">No movies yet. Search above to add the first one.</p>
       ) : (
-        <div className="movie-list">
-          {movies.map((movie) => (
-            <div className="movie-row" key={movie.id}>
-              {movie.poster_path ? (
-                <img src={movie.poster_path} alt={movie.title} />
-              ) : (
-                <div className="poster-fallback" />
-              )}
-              <div className="movie-info">
-                <div className="title-row">
-                  <span className="title">{movie.title}</span>
-                  <span className="year">{movie.release_year || ""}</span>
+        <>
+          <div className="section-heading">🏆 Rankings</div>
+          <div className="movie-list">
+            {movies.map((movie, index) => (
+              <div className={`movie-row${index === 0 ? " rank-1" : ""}`} key={movie.id}>
+                <div className={`rank-badge${index < 3 ? " medal" : ""}`}>
+                  {index < 3 ? RANK_MEDALS[index] : `#${index + 1}`}
                 </div>
-                <div className="avg-badge">
-                  {movie.avg ? `★ ${movie.avg.toFixed(1)}` : "No ratings yet"}
-                  {movie.count > 0 && ` · ${movie.count} rating${movie.count === 1 ? "" : "s"}`}
-                </div>
-                <div className="rate-buttons">
-                  {[1, 2, 3, 4, 5].map((n) => (
-                    <button
-                      key={n}
-                      className={movie.myRating === n ? "active" : ""}
-                      onClick={() => handleRate(movie.id, n)}
-                      title={RATING_LABELS[n]}
-                    >
-                      {RATING_LABELS[n]}
-                    </button>
-                  ))}
-                </div>
-                {movie.ratings.length > 0 && (
-                  <div className="friend-ratings">
-                    {movie.ratings.map((r) => (
-                      <span className="friend-pill" key={r.username}>
-                        {r.username}: {RATING_LABELS[r.rating] || r.rating}
-                      </span>
+                {movie.poster_path ? (
+                  <img src={movie.poster_path} alt={movie.title} />
+                ) : (
+                  <div className="poster-fallback" />
+                )}
+                <div className="movie-info">
+                  <div className="title-row">
+                    <span className="title">{movie.title}</span>
+                    <span className="year">{movie.release_year || ""}</span>
+                  </div>
+                  <div className="avg-badge">
+                    {movie.avg
+                      ? `${RATING_LABELS[Math.round(movie.avg)]} · ${movie.avg.toFixed(1)} avg`
+                      : "No ratings yet"}
+                    {movie.count > 0 && ` · ${movie.count} rating${movie.count === 1 ? "" : "s"}`}
+                  </div>
+                  <div className="rate-buttons">
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <button
+                        key={n}
+                        className={movie.myRating === n ? "active" : ""}
+                        onClick={() => handleRate(movie.id, n)}
+                        title={RATING_LABELS[n]}
+                      >
+                        {RATING_LABELS[n]}
+                      </button>
                     ))}
                   </div>
-                )}
+                  {movie.ratings.length > 0 && (
+                    <div className="friend-ratings">
+                      {movie.ratings.map((r) => (
+                        <span className="friend-pill" key={r.username}>
+                          {r.username}: {RATING_LABELS[r.rating] || r.rating}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );
