@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { supabase } from "../../lib/supabaseClient";
+const { setCurrentUser } = require("../../lib/currentUser");
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -14,18 +16,33 @@ export default function RegisterPage() {
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
+
+    const cleanUsername = username.trim();
+    if (cleanUsername.length < 2) {
+      setError("Username must be at least 2 characters.");
+      return;
+    }
+    if (password.length < 4) {
+      setError("Password must be at least 4 characters.");
+      return;
+    }
+
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+      const { data, error: rpcError } = await supabase.rpc("register_profile", {
+        p_username: cleanUsername,
+        p_password: password,
       });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || "Something went wrong.");
+      if (rpcError) {
+        setError(
+          rpcError.message && rpcError.message.includes("already taken")
+            ? "That username is taken."
+            : "Something went wrong."
+        );
         return;
       }
+      const profile = data && data[0];
+      setCurrentUser(profile);
       router.push("/");
       router.refresh();
     } finally {
