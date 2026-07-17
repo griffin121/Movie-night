@@ -1,10 +1,9 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import { supabase } from "../lib/supabaseClient";
+import NavBar from "./NavBar";
 const { searchMovies } = require("../lib/tmdb");
-const { clearCurrentUser } = require("../lib/currentUser");
 
 const RATING_LABELS = {
   1: "💩 Ass",
@@ -17,7 +16,6 @@ const RATING_LABELS = {
 const RANK_MEDALS = ["🥇", "🥈", "🥉"];
 
 export default function Dashboard({ user }) {
-  const router = useRouter();
   const [query, setQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
@@ -131,23 +129,9 @@ export default function Dashboard({ user }) {
     await loadMovies();
   }
 
-  function handleLogout() {
-    clearCurrentUser();
-    router.push("/login");
-    router.refresh();
-  }
-
   return (
     <div className="page">
-      <div className="topbar">
-        <h1>🎬 Movie Night</h1>
-        <div className="who">
-          {user.username}{" "}
-          <button className="btn secondary small" style={{ marginLeft: 8 }} onClick={handleLogout}>
-            Log out
-          </button>
-        </div>
-      </div>
+      <NavBar user={user} active="home" title="🎬 Movie Night" />
 
       <form className="search-row" onSubmit={handleSearch}>
         <input
