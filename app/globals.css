@@ -39,13 +39,16 @@ a {
 }
 
 .topbar h1 {
-  font-size: 22px;
+  font-size: 24px;
   margin: 0;
 }
 
 .topbar .who {
   color: var(--muted);
   font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .auth-card {
@@ -55,6 +58,7 @@ a {
   border: 1px solid var(--border);
   border-radius: 14px;
   padding: 28px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
 }
 
 .auth-card h1 {
@@ -84,6 +88,7 @@ input[type="password"] {
   background: var(--panel-2);
   color: var(--text);
   font-size: 15px;
+  transition: border-color 0.15s ease;
 }
 
 input:focus {
@@ -104,10 +109,15 @@ button {
   font-weight: 600;
   background: var(--accent);
   color: #17170f;
+  transition: filter 0.15s ease, transform 0.1s ease;
 }
 
 .btn:hover {
-  filter: brightness(1.05);
+  filter: brightness(1.08);
+}
+
+.btn:active {
+  transform: scale(0.97);
 }
 
 .btn.secondary {
@@ -163,6 +173,12 @@ button {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.search-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent-dim);
 }
 
 .search-card img {
@@ -205,6 +221,16 @@ button {
   font-size: 12px;
 }
 
+.section-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0 0 14px;
+  color: var(--text);
+}
+
 .movie-list {
   display: flex;
   flex-direction: column;
@@ -213,11 +239,46 @@ button {
 
 .movie-row {
   display: flex;
+  align-items: flex-start;
   gap: 14px;
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 14px;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.movie-row:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent-dim);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+}
+
+.movie-row.rank-1 {
+  border-color: #f2c94c;
+  box-shadow: 0 0 0 1px rgba(242, 201, 76, 0.3);
+}
+
+.rank-badge {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.rank-badge.medal {
+  font-size: 18px;
+  background: transparent;
+  border-color: transparent;
 }
 
 .movie-row img {
@@ -266,7 +327,7 @@ button {
   background: var(--panel-2);
   border: 1px solid var(--border);
   border-radius: 999px;
-  padding: 3px 10px;
+  padding: 4px 12px;
   font-size: 13px;
   margin: 6px 0 10px;
   color: var(--accent);
@@ -275,19 +336,29 @@ button {
 
 .rate-buttons {
   display: flex;
-  gap: 6px;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-bottom: 10px;
 }
 
 .rate-buttons button {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
+  white-space: nowrap;
+  padding: 6px 14px;
+  border-radius: 999px;
   border: 1px solid var(--border);
   background: var(--panel-2);
   color: var(--text);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
+  transition: transform 0.1s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.rate-buttons button:hover {
+  border-color: var(--accent-dim);
+}
+
+.rate-buttons button:active {
+  transform: scale(0.95);
 }
 
 .rate-buttons button.active {
@@ -305,10 +376,11 @@ button {
 }
 
 .friend-pill {
+  white-space: nowrap;
   background: var(--panel-2);
   border: 1px solid var(--border);
   border-radius: 999px;
-  padding: 2px 9px;
+  padding: 3px 10px;
 }
 
 .empty {
