@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { supabase } from "../../lib/supabaseClient";
+const { setCurrentUser } = require("../../lib/currentUser");
 
 export default function LoginPage() {
   const router = useRouter();
@@ -16,16 +18,20 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+      const { data, error: rpcError } = await supabase.rpc("login_profile", {
+        p_username: username.trim(),
+        p_password: password,
       });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || "Something went wrong.");
+      if (rpcError) {
+        setError("Something went wrong.");
         return;
       }
+      const profile = data && data[0];
+      if (!profile) {
+        setError("Incorrect username or password.");
+        return;
+      }
+      setCurrentUser(profile);
       router.push("/");
       router.refresh();
     } finally {
