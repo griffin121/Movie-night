@@ -2,6 +2,9 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { supabase } from "../lib/supabaseClient";
+const { searchMovies } = require("../lib/tmdb");
+const { clearCurrentUser } = require("../lib/currentUser");
 
 export default function Dashboard({ user }) {
   const router = useRouter();
@@ -15,13 +18,46 @@ export default function Dashboard({ user }) {
 
   const loadMovies = useCallback(async () => {
     setLoadingMovies(true);
-    const res = await fetch("/api/movies");
-    if (res.ok) {
-      const data = await res.json();
-      setMovies(data.movies);
+    const { data: movieRows, error: moviesError } = await supabase
+      .from("movies")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (!moviesError && movieRows) {
+      const { data: ratingRows } = await supabase
+        .from("ratings")
+        .select("movie_id, rating, profile_id, profiles(username)");
+
+      const ratingsByMovie = new Map();
+      for (const row of ratingRows || []) {
+        if (!ratingsByMovie.has(row.movie_id)) ratingsByMovie.set(row.movie_id, []);
+        ratingsByMovie.get(row.movie_id).push(row);
+      }
+
+      const result = movieRows.map((movie) => {
+        const ratings = ratingsByMovie.get(movie.id) || [];
+        const avg = ratings.length
+          ? ratings.reduce((sum, r) => sum + r.rating, 0) / ratings.length
+          : null;
+        const mine = ratings.find((r) => r.profile_id === user.id);
+        return {
+          id: movie.id,
+          title: movie.title,
+          poster_path: movie.poster_path,
+          release_year: movie.release_year,
+          avg,
+          count: ratings.length,
+          ratings: ratings.map((r) => ({
+            username: r.profiles ? r.profiles.username : "?",
+            rating: r.rating,
+          })),
+          myRating: mine ? mine.rating : null,
+        };
+      });
+      setMovies(result);
     }
     setLoadingMovies(false);
-  }, []);
+  }, [user.id]);
 
   useEffect(() => {
     loadMovies();
@@ -33,14 +69,11 @@ export default function Dashboard({ user }) {
     setSearching(true);
     setSearchError("");
     try {
-      const res = await fetch(`/api/movies/search?q=${encodeURIComponent(query)}`);
-      const data = await res.json();
-      if (!res.ok) {
-        setSearchError(data.error || "Search failed.");
-        setSearchResults([]);
-        return;
-      }
-      setSearchResults(data.results);
+      const results = await searchMovies(query);
+      setSearchResults(results);
+    } catch (err) {
+      setSearchError(err.message || "Search failed.");
+      setSearchResults([]);
     } finally {
       setSearching(false);
     }
@@ -49,11 +82,16 @@ export default function Dashboard({ user }) {
   async function handleAdd(movie) {
     setAddingId(movie.tmdb_id);
     try {
-      await fetch("/api/movies", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(movie),
-      });
+      await supabase.from("movies").upsert(
+        {
+          tmdb_id: movie.tmdb_id,
+          title: movie.title,
+          poster_path: movie.poster_path,
+          release_year: movie.release_year,
+          added_by: user.id,
+        },
+        { onConflict: "tmdb_id", ignoreDuplicates: true }
+      );
       setSearchResults((prev) => prev.filter((m) => m.tmdb_id !== movie.tmdb_id));
       setQuery("");
       await loadMovies();
@@ -66,16 +104,17 @@ export default function Dashboard({ user }) {
     setMovies((prev) =>
       prev.map((m) => (m.id === movieId ? { ...m, myRating: rating } : m))
     );
-    await fetch("/api/ratings", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ movie_id: movieId, rating }),
-    });
+    await supabase
+      .from("ratings")
+      .upsert(
+        { movie_id: movieId, profile_id: user.id, rating },
+        { onConflict: "movie_id,profile_id" }
+      );
     await loadMovies();
   }
 
-  async function handleLogout() {
-    await fetch("/api/auth/logout", { method: "POST" });
+  function handleLogout() {
+    clearCurrentUser();
     router.push("/login");
     router.refresh();
   }
