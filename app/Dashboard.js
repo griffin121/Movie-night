@@ -6,6 +6,14 @@ import { supabase } from "../lib/supabaseClient";
 const { searchMovies } = require("../lib/tmdb");
 const { clearCurrentUser } = require("../lib/currentUser");
 
+const RATING_LABELS = {
+  1: "ass",
+  2: "ass movie",
+  3: "movie",
+  4: "good movie",
+  5: "good ass movie",
+};
+
 export default function Dashboard({ user }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
@@ -200,9 +208,9 @@ export default function Dashboard({ user }) {
                       key={n}
                       className={movie.myRating === n ? "active" : ""}
                       onClick={() => handleRate(movie.id, n)}
-                      title={n === 1 ? "1 = bad" : n === 5 ? "5 = good" : String(n)}
+                      title={RATING_LABELS[n]}
                     >
-                      {n}
+                      {RATING_LABELS[n]}
                     </button>
                   ))}
                 </div>
@@ -210,7 +218,7 @@ export default function Dashboard({ user }) {
                   <div className="friend-ratings">
                     {movie.ratings.map((r) => (
                       <span className="friend-pill" key={r.username}>
-                        {r.username}: {r.rating}
+                        {r.username}: {RATING_LABELS[r.rating] || r.rating}
                       </span>
                     ))}
                   </div>
