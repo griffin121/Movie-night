@@ -434,3 +434,83 @@ button {
   text-align: center;
   padding: 40px 0;
 }
+
+.picker-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  background: var(--panel);
+  border: 1px solid var(--accent-dim);
+  border-radius: 12px;
+  padding: 14px 18px;
+  margin: -6px 0 24px;
+  font-size: 14px;
+}
+
+.picker-banner .picker-you {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.picker-banner .picker-range {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.vote-versus {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.vote-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  width: 220px;
+  text-align: center;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.vote-card img,
+.vote-card .poster-fallback {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  background: var(--panel-2);
+}
+
+.vote-card .title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.vote-card .year {
+  color: var(--muted);
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+.vote-card.chosen {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(242, 201, 76, 0.35);
+}
+
+.vote-vs {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--muted);
+}
+
+.search-card.chosen {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(242, 201, 76, 0.35);
+}
