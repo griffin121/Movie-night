@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "../lib/supabaseClient";
 import NavBar from "./NavBar";
 const { searchMovies } = require("../lib/tmdb");
+const { getCurrentPicker, getWeekRange } = require("../lib/schedule");
 
 const RATING_LABELS = {
   1: "💩 Ass",
@@ -15,6 +16,11 @@ const RATING_LABELS = {
 
 const RANK_MEDALS = ["🥇", "🥈", "🥉"];
 
+function formatRange(range) {
+  const opts = { month: "short", day: "numeric" };
+  return `${range.start.toLocaleDateString(undefined, opts)} – ${range.end.toLocaleDateString(undefined, opts)}`;
+}
+
 export default function Dashboard({ user }) {
   const [query, setQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
@@ -23,6 +29,8 @@ export default function Dashboard({ user }) {
   const [movies, setMovies] = useState([]);
   const [loadingMovies, setLoadingMovies] = useState(true);
   const [addingId, setAddingId] = useState(null);
+  const [picker, setPicker] = useState(null);
+  const [weekRange, setWeekRange] = useState(null);
 
   const loadMovies = useCallback(async () => {
     setLoadingMovies(true);
@@ -75,9 +83,21 @@ export default function Dashboard({ user }) {
     setLoadingMovies(false);
   }, [user.id]);
 
+  const loadPicker = useCallback(async () => {
+    const { data } = await supabase.from("profiles").select("id, username, created_at");
+    if (data && data.length) {
+      setPicker(getCurrentPicker(data));
+      setWeekRange(getWeekRange());
+    }
+  }, []);
+
   useEffect(() => {
     loadMovies();
   }, [loadMovies]);
+
+  useEffect(() => {
+    loadPicker();
+  }, [loadPicker]);
 
   async function handleSearch(e) {
     e.preventDefault();
@@ -132,6 +152,16 @@ export default function Dashboard({ user }) {
   return (
     <div className="page">
       <NavBar user={user} active="home" title="🎬 Movie Night" />
+
+      {picker && (
+        <div className="picker-banner">
+          <span>
+            🎯 <strong>{picker.username}</strong> picks this week
+            {picker.id === user.id && <span className="picker-you"> — that's you!</span>}
+          </span>
+          {weekRange && <span className="picker-range">{formatRange(weekRange)}</span>}
+        </div>
+      )}
 
       <form className="search-row" onSubmit={handleSearch}>
         <input
