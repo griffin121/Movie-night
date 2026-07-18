@@ -8,6 +8,7 @@ const LINKS = [
   { href: "/", label: "🏠 Home", key: "home" },
   { href: "/rankings", label: "🏆 Rankings", key: "rankings" },
   { href: "/watchlist", label: "🍿 Watch List", key: "watchlist" },
+  { href: "/vote", label: "🥊 Vote", key: "vote" },
 ];
 
 export default function NavBar({ user, active, title }) {
