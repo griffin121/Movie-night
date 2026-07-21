@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
 import { supabase } from "../lib/supabaseClient";
 import NavBar from "./NavBar";
 const { searchMovies } = require("../lib/tmdb");
@@ -21,6 +22,18 @@ function formatRange(range) {
   return `${range.start.toLocaleDateString(undefined, opts)} – ${range.end.toLocaleDateString(undefined, opts)}`;
 }
 
+function timeAgo(iso) {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
 export default function Dashboard({ user }) {
   const [query, setQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
@@ -31,6 +44,7 @@ export default function Dashboard({ user }) {
   const [addingId, setAddingId] = useState(null);
   const [picker, setPicker] = useState(null);
   const [weekRange, setWeekRange] = useState(null);
+  const [activity, setActivity] = useState([]);
 
   const loadMovies = useCallback(async () => {
     setLoadingMovies(true);
@@ -91,6 +105,54 @@ export default function Dashboard({ user }) {
     }
   }, []);
 
+  const loadActivity = useCallback(async () => {
+    const [{ data: allMovies }, { data: profileRows }, { data: ratingRows }, { data: commentRows }] =
+      await Promise.all([
+        supabase.from("movies").select("id, title, created_at"),
+        supabase.from("profiles").select("id, username"),
+        supabase
+          .from("ratings")
+          .select("rating, created_at, profile_id, movie_id")
+          .order("created_at", { ascending: false })
+          .limit(15),
+        supabase
+          .from("comments")
+          .select("body, created_at, profile_id, movie_id")
+          .order("created_at", { ascending: false })
+          .limit(15),
+      ]);
+
+    const profileMap = new Map((profileRows || []).map((p) => [p.id, p.username]));
+    const movieMap = new Map((allMovies || []).map((m) => [m.id, m.title]));
+
+    const items = [];
+
+    for (const m of allMovies || []) {
+      items.push({
+        key: `add-${m.id}`,
+        created_at: m.created_at,
+        text: `🎬 ${m.title} was added to the list`,
+      });
+    }
+    for (const r of ratingRows || []) {
+      items.push({
+        key: `rate-${r.movie_id}-${r.profile_id}-${r.created_at}`,
+        created_at: r.created_at,
+        text: `${profileMap.get(r.profile_id) || "?"} rated ${movieMap.get(r.movie_id) || "a movie"} ${RATING_LABELS[r.rating] || r.rating}`,
+      });
+    }
+    for (const c of commentRows || []) {
+      items.push({
+        key: `comment-${c.movie_id}-${c.profile_id}-${c.created_at}`,
+        created_at: c.created_at,
+        text: `${profileMap.get(c.profile_id) || "?"} commented on ${movieMap.get(c.movie_id) || "a movie"}`,
+      });
+    }
+
+    items.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    setActivity(items.slice(0, 8));
+  }, []);
+
   useEffect(() => {
     loadMovies();
   }, [loadMovies]);
@@ -98,6 +160,10 @@ export default function Dashboard({ user }) {
   useEffect(() => {
     loadPicker();
   }, [loadPicker]);
+
+  useEffect(() => {
+    loadActivity();
+  }, [loadActivity]);
 
   async function handleSearch(e) {
     e.preventDefault();
@@ -131,6 +197,7 @@ export default function Dashboard({ user }) {
       setSearchResults((prev) => prev.filter((m) => m.tmdb_id !== movie.tmdb_id));
       setQuery("");
       await loadMovies();
+      await loadActivity();
     } finally {
       setAddingId(null);
     }
@@ -147,6 +214,7 @@ export default function Dashboard({ user }) {
         { onConflict: "movie_id,profile_id" }
       );
     await loadMovies();
+    await loadActivity();
   }
 
   return (
@@ -204,6 +272,20 @@ export default function Dashboard({ user }) {
         </div>
       )}
 
+      {activity.length > 0 && (
+        <>
+          <div className="section-heading">📣 Recent Activity</div>
+          <div className="activity-list">
+            {activity.map((item) => (
+              <div className="activity-item" key={item.key}>
+                <span>{item.text}</span>
+                <span className="activity-time">{timeAgo(item.created_at)}</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
       {loadingMovies ? (
         <p className="empty">Loading movies...</p>
       ) : movies.length === 0 ? (
@@ -224,7 +306,9 @@ export default function Dashboard({ user }) {
                 )}
                 <div className="movie-info">
                   <div className="title-row">
-                    <span className="title">{movie.title}</span>
+                    <Link href={`/movie/?id=${movie.id}`} className="title">
+                      {movie.title}
+                    </Link>
                     <span className="year">{movie.release_year || ""}</span>
                   </div>
                   <div className="avg-badge">
