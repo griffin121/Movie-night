@@ -10,6 +10,7 @@ const LINKS = [
   { href: "/watchlist", label: "🍿 Watch List", key: "watchlist" },
   { href: "/vote", label: "🥊 Vote", key: "vote" },
   { href: "/new-releases", label: "🎬 New Releases", key: "new-releases" },
+  { href: "/random", label: "🎲 Random", key: "random" },
   { href: "/history", label: "📜 History", key: "history" },
   { href: "/account", label: "⚙️ Account", key: "account" },
 ];
