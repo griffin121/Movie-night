@@ -95,7 +95,7 @@ export default function NewReleasesPage() {
     <div className="page">
       <NavBar user={user} active="new-releases" title="🎬 New Releases" />
       <p className="sub-note">
-        Recently released movies, and where you can watch them right now.
+        Movies that have newly landed on streaming, rental, or digital purchase — not what's in theaters.
       </p>
 
       <div className="filter-row">
@@ -117,7 +117,7 @@ export default function NewReleasesPage() {
       ) : visibleMovies.length === 0 ? (
         <p className="empty">
           {movies.length === 0
-            ? "No new releases found right now."
+            ? "No new streaming releases found right now."
             : "No new releases match the selected streaming services."}
         </p>
       ) : (
