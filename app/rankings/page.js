@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { supabase } from "../../lib/supabaseClient";
 import NavBar from "../NavBar";
 const { getCurrentUser } = require("../../lib/currentUser");
@@ -110,7 +111,9 @@ export default function RankingsPage() {
               )}
               <div className="movie-info">
                 <div className="title-row">
-                  <span className="title">{movie.title}</span>
+                  <Link href={`/movie/?id=${movie.id}`} className="title">
+                    {movie.title}
+                  </Link>
                   <span className="year">{movie.release_year || ""}</span>
                 </div>
                 <div className="avg-badge">
