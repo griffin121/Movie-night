@@ -22,6 +22,7 @@ export default function WatchlistPage() {
 
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [surprise, setSurprise] = useState(null);
 
   useEffect(() => {
     const u = getCurrentUser();
@@ -108,6 +109,12 @@ export default function WatchlistPage() {
     await loadWatchlist();
   }
 
+  function handleSurprise(pool) {
+    if (pool.length === 0) return;
+    const pick = pool[Math.floor(Math.random() * pool.length)];
+    setSurprise(pick);
+  }
+
   if (!checked || !user) return null;
 
   const unlocked = items.filter((m) => m.wanters.length >= MIN_WANTERS);
@@ -167,7 +174,46 @@ export default function WatchlistPage() {
         <p className="empty">Loading watch list...</p>
       ) : (
         <>
-          <div className="section-heading">🍿 Ready to Watch</div>
+          <div
+            className="section-heading"
+            style={{ justifyContent: "space-between", display: "flex" }}
+          >
+            <span>🍿 Ready to Watch</span>
+            {unlocked.length > 0 && (
+              <button className="btn secondary small" onClick={() => handleSurprise(unlocked)}>
+                🎲 Surprise me
+              </button>
+            )}
+          </div>
+
+          {surprise && (
+            <div className="surprise-banner">
+              {surprise.poster_path ? (
+                <img src={surprise.poster_path} alt={surprise.title} />
+              ) : (
+                <div className="poster-fallback" />
+              )}
+              <div>
+                <div className="sub-note" style={{ margin: "0 0 4px" }}>
+                  🎲 Tonight's pick...
+                </div>
+                <div className="title" style={{ fontSize: 18, fontWeight: 700 }}>
+                  {surprise.title} <span className="year">{surprise.release_year || ""}</span>
+                </div>
+              </div>
+              <button
+                className="btn secondary small"
+                style={{ marginLeft: "auto" }}
+                onClick={() => handleSurprise(unlocked)}
+              >
+                Re-roll
+              </button>
+              <button className="btn secondary small" onClick={() => setSurprise(null)}>
+                Dismiss
+              </button>
+            </div>
+          )}
+
           {unlocked.length === 0 ? (
             <p className="empty">
               No movies have {MIN_WANTERS}+ people wanting to watch yet. Add some above!
