@@ -6,6 +6,16 @@ import NavBar from "../NavBar";
 const { getCurrentUser } = require("../../lib/currentUser");
 const { getNewReleases, getWatchProviders } = require("../../lib/tmdb");
 
+const PROVIDER_FILTERS = [
+  { key: "netflix", label: "Netflix", match: (n) => n.toLowerCase().includes("netflix") },
+  { key: "hulu", label: "Hulu", match: (n) => n.toLowerCase().includes("hulu") },
+  { key: "prime", label: "Prime Video", match: (n) => n.toLowerCase().includes("prime video") },
+  { key: "disney", label: "Disney+", match: (n) => n.toLowerCase().includes("disney") },
+  { key: "max", label: "Max", match: (n) => n.toLowerCase().includes("max") || n.toLowerCase().includes("hbo") },
+  { key: "apple", label: "Apple TV+", match: (n) => n.toLowerCase().includes("apple tv") },
+  { key: "paramount", label: "Paramount+", match: (n) => n.toLowerCase().includes("paramount") },
+];
+
 export default function NewReleasesPage() {
   const router = useRouter();
   const [user, setUser] = useState(null);
@@ -15,6 +25,7 @@ export default function NewReleasesPage() {
   const [providers, setProviders] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [activeFilters, setActiveFilters] = useState([]);
 
   useEffect(() => {
     const u = getCurrentUser();
@@ -63,7 +74,22 @@ export default function NewReleasesPage() {
     };
   }, [user]);
 
+  function toggleFilter(key) {
+    setActiveFilters((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
+    );
+  }
+
   if (!checked || !user) return null;
+
+  const activeMatchers = PROVIDER_FILTERS.filter((f) => activeFilters.includes(f.key));
+  const visibleMovies =
+    activeMatchers.length === 0
+      ? movies
+      : movies.filter((m) => {
+          const flatrate = (providers[m.tmdb_id] || {}).flatrate || [];
+          return flatrate.some((prov) => activeMatchers.some((f) => f.match(prov.name)));
+        });
 
   return (
     <div className="page">
@@ -72,15 +98,31 @@ export default function NewReleasesPage() {
         Recently released movies, and where you can watch them right now.
       </p>
 
+      <div className="filter-row">
+        {PROVIDER_FILTERS.map((f) => (
+          <button
+            key={f.key}
+            className={`filter-chip${activeFilters.includes(f.key) ? " active" : ""}`}
+            onClick={() => toggleFilter(f.key)}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
       {loading ? (
         <p className="empty">Loading...</p>
       ) : error ? (
         <p className="error">{error}</p>
-      ) : movies.length === 0 ? (
-        <p className="empty">No new releases found right now.</p>
+      ) : visibleMovies.length === 0 ? (
+        <p className="empty">
+          {movies.length === 0
+            ? "No new releases found right now."
+            : "No new releases match the selected streaming services."}
+        </p>
       ) : (
         <div className="search-results">
-          {movies.map((m) => {
+          {visibleMovies.map((m) => {
             const p = providers[m.tmdb_id] || {};
             const flatrate = p.flatrate || [];
             return (
