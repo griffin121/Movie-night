@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { supabase } from "../../lib/supabaseClient";
 import NavBar from "../NavBar";
 const { getCurrentUser } = require("../../lib/currentUser");
 const { getNewReleases, getWatchProviders } = require("../../lib/tmdb");
@@ -26,6 +27,9 @@ export default function NewReleasesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [activeFilters, setActiveFilters] = useState([]);
+  const [expandedId, setExpandedId] = useState(null);
+  const [addedIds, setAddedIds] = useState(new Set());
+  const [addingId, setAddingId] = useState(null);
 
   useEffect(() => {
     const u = getCurrentUser();
@@ -80,6 +84,30 @@ export default function NewReleasesPage() {
     );
   }
 
+  function toggleExpand(tmdbId) {
+    setExpandedId((prev) => (prev === tmdbId ? null : tmdbId));
+  }
+
+  async function handleAddToWatchlist(movie) {
+    if (!movie || !user) return;
+    setAddingId(movie.tmdb_id);
+    try {
+      await supabase.from("watchlist").upsert(
+        {
+          tmdb_id: movie.tmdb_id,
+          title: movie.title,
+          poster_path: movie.poster_path,
+          release_year: movie.release_year,
+          profile_id: user.id,
+        },
+        { onConflict: "tmdb_id,profile_id", ignoreDuplicates: true }
+      );
+      setAddedIds((prev) => new Set(prev).add(movie.tmdb_id));
+    } finally {
+      setAddingId(null);
+    }
+  }
+
   if (!checked || !user) return null;
 
   const activeMatchers = PROVIDER_FILTERS.filter((f) => activeFilters.includes(f.key));
@@ -97,6 +125,7 @@ export default function NewReleasesPage() {
       <p className="sub-note">
         Movies that have newly landed on streaming, rental, or digital purchase — not what's in theaters.
       </p>
+      <p className="sub-note">Tap a movie for its synopsis and to add it to your watch list.</p>
 
       <div className="filter-row">
         {PROVIDER_FILTERS.map((f) => (
@@ -125,8 +154,16 @@ export default function NewReleasesPage() {
           {visibleMovies.map((m) => {
             const p = providers[m.tmdb_id] || {};
             const flatrate = p.flatrate || [];
+            const isExpanded = expandedId === m.tmdb_id;
+            const isAdded = addedIds.has(m.tmdb_id);
+            const isAdding = addingId === m.tmdb_id;
             return (
-              <div className="search-card" key={m.tmdb_id}>
+              <div
+                className="search-card"
+                key={m.tmdb_id}
+                onClick={() => toggleExpand(m.tmdb_id)}
+                style={{ cursor: "pointer" }}
+              >
                 {m.poster_path ? (
                   <img src={m.poster_path} alt={m.title} />
                 ) : (
@@ -166,9 +203,30 @@ export default function NewReleasesPage() {
                       target="_blank"
                       rel="noopener noreferrer"
                       className="provider-link"
+                      onClick={(e) => e.stopPropagation()}
                     >
                       Where to watch →
                     </a>
+                  )}
+                  {isExpanded && (
+                    <>
+                      {m.overview && (
+                        <p style={{ color: "var(--text)", lineHeight: 1.5, marginTop: 10 }}>
+                          {m.overview}
+                        </p>
+                      )}
+                      <button
+                        className="btn secondary small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAddToWatchlist(m);
+                        }}
+                        disabled={isAdding || isAdded}
+                        style={{ marginTop: 10 }}
+                      >
+                        {isAdded ? "✓ Added to Watch List" : isAdding ? "Adding..." : "+ Want to watch"}
+                      </button>
+                    </>
                   )}
                 </div>
               </div>
