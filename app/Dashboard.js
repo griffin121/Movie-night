@@ -5,7 +5,7 @@ import Link from "next/link";
 import { supabase } from "../lib/supabaseClient";
 import NavBar from "./NavBar";
 const { searchMovies } = require("../lib/tmdb");
-const { getCurrentPicker, getWeekRange } = require("../lib/schedule");
+const { getCurrentPicker, getNextPicker } = require("../lib/schedule");
 
 const RATING_LABELS = {
   1: "💩 Ass",
@@ -16,11 +16,6 @@ const RATING_LABELS = {
 };
 
 const RANK_MEDALS = ["🥇", "🥈", "🥉"];
-
-function formatRange(range) {
-  const opts = { month: "short", day: "numeric" };
-  return `${range.start.toLocaleDateString(undefined, opts)} – ${range.end.toLocaleDateString(undefined, opts)}`;
-}
 
 function timeAgo(iso) {
   const diffMs = Date.now() - new Date(iso).getTime();
@@ -43,7 +38,8 @@ export default function Dashboard({ user }) {
   const [loadingMovies, setLoadingMovies] = useState(true);
   const [addingId, setAddingId] = useState(null);
   const [picker, setPicker] = useState(null);
-  const [weekRange, setWeekRange] = useState(null);
+  const [nextPicker, setNextPicker] = useState(null);
+  const [markingNight, setMarkingNight] = useState(false);
   const [activity, setActivity] = useState([]);
 
   const loadMovies = useCallback(async () => {
@@ -98,15 +94,43 @@ export default function Dashboard({ user }) {
   }, [user.id]);
 
   const loadPicker = useCallback(async () => {
-    const { data } = await supabase.from("profiles").select("id, username, created_at");
-    if (data && data.length) {
-      setPicker(getCurrentPicker(data));
-      setWeekRange(getWeekRange());
+    const [{ data: profileRows }, { count }] = await Promise.all([
+      supabase.from("profiles").select("id, username, created_at"),
+      supabase.from("movie_nights").select("*", { count: "exact", head: true }),
+    ]);
+    if (profileRows && profileRows.length) {
+      const nightsHeld = count || 0;
+      setPicker(getCurrentPicker(profileRows, nightsHeld));
+      setNextPicker(getNextPicker(profileRows, nightsHeld));
     }
   }, []);
 
+  async function handleMarkNight() {
+    if (!picker) return;
+    const label =
+      picker.id === user.id ? "you" : picker.username;
+    const ok = window.confirm(
+      `Log a movie night as watched? This moves the pick from ${label} to ${
+        nextPicker ? nextPicker.username : "the next person"
+      }.`
+    );
+    if (!ok) return;
+
+    setMarkingNight(true);
+    try {
+      await supabase.from("movie_nights").insert({
+        picker_id: picker.id,
+        logged_by: user.id,
+      });
+      await loadPicker();
+      await loadActivity();
+    } finally {
+      setMarkingNight(false);
+    }
+  }
+
   const loadActivity = useCallback(async () => {
-    const [{ data: allMovies }, { data: profileRows }, { data: ratingRows }, { data: commentRows }] =
+    const [{ data: allMovies }, { data: profileRows }, { data: ratingRows }, { data: commentRows }, { data: nightRows }] =
       await Promise.all([
         supabase.from("movies").select("id, title, created_at"),
         supabase.from("profiles").select("id, username"),
@@ -118,6 +142,11 @@ export default function Dashboard({ user }) {
         supabase
           .from("comments")
           .select("body, created_at, profile_id, movie_id")
+          .order("created_at", { ascending: false })
+          .limit(15),
+        supabase
+          .from("movie_nights")
+          .select("id, created_at, picker_id")
           .order("created_at", { ascending: false })
           .limit(15),
       ]);
@@ -146,6 +175,13 @@ export default function Dashboard({ user }) {
         key: `comment-${c.movie_id}-${c.profile_id}-${c.created_at}`,
         created_at: c.created_at,
         text: `${profileMap.get(c.profile_id) || "?"} commented on ${movieMap.get(c.movie_id) || "a movie"}`,
+      });
+    }
+    for (const n of nightRows || []) {
+      items.push({
+        key: `night-${n.id}`,
+        created_at: n.created_at,
+        text: `🍿 Movie night logged — ${profileMap.get(n.picker_id) || "someone"}'s turn is done`,
       });
     }
 
@@ -224,10 +260,19 @@ export default function Dashboard({ user }) {
       {picker && (
         <div className="picker-banner">
           <span>
-            🎯 <strong>{picker.username}</strong> picks this week
+            🎯 <strong>{picker.username}</strong> is up next
             {picker.id === user.id && <span className="picker-you"> — that's you!</span>}
+            {nextPicker && nextPicker.id !== picker.id && (
+              <span className="picker-range"> · then {nextPicker.username}</span>
+            )}
           </span>
-          {weekRange && <span className="picker-range">{formatRange(weekRange)}</span>}
+          <button
+            className="btn small"
+            onClick={handleMarkNight}
+            disabled={markingNight}
+          >
+            {markingNight ? "Saving..." : "✅ We watched one"}
+          </button>
         </div>
       )}
 
